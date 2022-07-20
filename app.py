@@ -11,9 +11,9 @@ from urllib.parse import parse_qs
 
 API_KEY = os.environ.get("ATLASSIAN_API_KEY")
 DD_EMAIL = os.environ.get("DD_EMAIL")
-BASE_URL = "https://datadoghq.atlassian.net/wiki/"
+BASE_URL = os.environ.get("DD_BASE_URL")
 acceptable_quarters = ["22q3","22q4","23q1", "22q2", "22q3"]
-guidelines_url = "/rest/api/content/2540733781?expand=body.view,version"
+guidelines_url = os.environ.get("DD_GUIDELINES_URL")
 storage_url = "/rest/api/content/2540733781?expand=body.storage,version"
 post_url = "rest/api/content/2540733781"
 non_conformant_titles = []
