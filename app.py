@@ -107,9 +107,9 @@ def put_conf_page(page):
 search_url = build_search_url_path(acceptable_quarters)
 get_nonconformant_pages(non_conformant_titles, search_url)
 payload = build_page_payload(non_conformant_titles)
-pg_content = requests.get(BASE_URL + storage_url, auth=(DD_EMAIL, API_KEY))
-page = pg_content.json()
+page = requests.get(BASE_URL + storage_url, auth=(DD_EMAIL, API_KEY)).json()
 new_page = update_page_obj(page, payload)
+put_conf_page(new_page)
 
 
 
