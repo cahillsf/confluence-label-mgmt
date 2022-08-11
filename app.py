@@ -8,6 +8,7 @@ import json
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
+import slack_funcs
 
 API_KEY = os.environ.get("ATLASSIAN_API_KEY")
 DD_EMAIL = os.environ.get("DD_EMAIL")
@@ -17,19 +18,32 @@ guidelines_url = os.environ.get("DD_GUIDELINES_URL")
 storage_url = "/rest/api/content/2540733781?expand=body.storage,version"
 post_url = "rest/api/content/2540733781"
 non_conformant_titles = []
+page_assignment_dict = {}
+
+
+
+def add_to_dict(page):
+  url = BASE_URL[:-1] + page['_links']['webui']
+  title = page['title']
+  if page['history']['createdBy']['email'] in page_assignment_dict:
+    page_assignment_dict[page['history']['createdBy']['email']].append([title, url])
+    return
+  page_assignment_dict[page['history']['createdBy']['email']] = [[title, url]]
 
 def build_search_url_path(acceptable_quarters):
   tag_filter = ""
   for q in acceptable_quarters:
     tag_filter += "%22review-" + q + "%22,"
   
-  search_url= "/rest/api/search?cql=label?NOT?IN(" + tag_filter[:-1] + ")?AND?type=%22page%22?AND?space=PS"
+  search_url= "/rest/api/content/search?cql=label?NOT?IN(" + tag_filter[:-1] + ")?AND?type=%22page%22?AND?space=PS&expand=history"
   return search_url
 
 def get_nonconformant_pages(arr, url):
   pages = requests.get(BASE_URL + url, auth=(DD_EMAIL, API_KEY))
-  print(pages.json())
+  # print("pages info here")
+  # print(json.dumps(pages.json()))
   for page in pages.json()['results']:
+    add_to_dict(page)
     arr.append(page['title'])
 
   try: 
@@ -44,6 +58,8 @@ def get_nonconformant_pages(arr, url):
     get_nonconformant_pages(arr, new_url)
   except:
     print("No more pages")
+    # print("dict of owners")
+    # print(page_assignment_dict)
   return
 
 def build_list(soup, titles_arr, ul):
@@ -108,66 +124,13 @@ search_url = build_search_url_path(acceptable_quarters)
 get_nonconformant_pages(non_conformant_titles, search_url)
 payload = build_page_payload(non_conformant_titles)
 page = requests.get(BASE_URL + storage_url, auth=(DD_EMAIL, API_KEY)).json()
+# print("expanded page")
+# print(json.dumps(page))
+# print(page['history']['createdBy']['email'])
 new_page = update_page_obj(page, payload)
-put_conf_page(new_page)
+# put_conf_page(new_page)
+# slack_funcs.test_client()
+# slack_funcs.post_message(slack_funcs.get_id_from_email("cahillsf9@gmail.com"), "Hello world")
+slack_funcs.process_notifications(test_dict)
 
 
-
-
-
-# pg_content = requests.get(BASE_URL + storage_url, auth=(DD_EMAIL, API_KEY))
-# print("expand storage")
-# print(json.dumps(x.json()))
-# other_html = pg_content.json()['body']['storage']['value']
-
-# other_soup = BeautifulSoup(other_html, 'html.parser')
-# p_soup = other_soup.find_all('p')
-# target = "Pages that are past due for review or don’t adhere to the tagging guidelines:"
-# print("new soup")
-# for p in p_soup:
-#   if (p.string == target):
-#     print(p)
-#     ul = p.next_sibling
-
-# new_parent = other_soup.new_tag("li")
-# new_parent.append(other_soup.new_tag("p"))
-# p_tag = new_parent.p
-# ac_link = other_soup.new_tag("ac:link")
-# ac_link['ac:card-appearance']="inline"
-# p_tag.append(ac_link)
-# ri_page = other_soup.new_tag("ri:page")
-# ri_page['ri:content-title'] = "Premier Customer Happiness Management"
-# ac_tag = new_parent.find_all('ac:link')[0]
-# ac_tag.append(ri_page)
-# ac_link_tag = other_soup.new_tag("ac:link-body")
-# ac_link_tag.string = "Premier Customer Happiness Management"
-# ac_tag.append(ac_link_tag)
-
-# print(new_parent)
-# ul.append(new_parent)
-# print("other_soup")
-# print(other_soup.prettify())
-
-# new_page = pg_content.json()
-# new_version = pg_content.json()['version']['number'] + 1
-# new_page['version']['number'] = new_version
-# new_page['body']['storage']['value']=str(other_soup)
-
-
-# headers = {
-#    "Accept": "application/json",
-#    "Content-Type": "application/json"
-# }
-# print("new page")
-# print(json.dumps(new_page))
-# payload = json.dumps(new_page)
-# response = requests.request(
-#   "PUT",
-#   BASE_URL + post_url,
-#   data=payload,
-#   auth=(DD_EMAIL, API_KEY),
-#   headers=headers
-# )
-# print(response.status_code)
-# print(response.json)
-# print(json.dumps(json.loads(response.text), sort_keys=True, indent=4, separators=(",", ": ")))
