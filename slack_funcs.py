@@ -6,7 +6,8 @@ import urllib.parse
 logging.basicConfig(level=logging.DEBUG)
 from slack_sdk import WebClient
 
-
+handle_overrides_example = {"ted-tedson-fredson": "ted.tedson-fredson@datadoghq.com"}
+handle_overrides = {}
 client = WebClient(token=os.environ['PERSONAL_SLACK_CHAT_TOKEN'])
 
 def build_markdown(channel, pages):
